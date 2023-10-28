@@ -86,10 +86,10 @@ uchar translate_keys_rev(uchar in) {
     return 0;
 }
 
-typedef struct Node {
-    uchar data;
-    struct Node *next;
-} Node;
+typedef struct Stack {
+    int stack_ptr;
+    ushort *data;
+} Stack;
 
 typedef struct {
     Render *render;
@@ -99,35 +99,14 @@ typedef struct {
     uchar delay_timer;
     uchar sound_timer;
     ushort pc;
-    Node *_stack;
+    Stack _stack;
     bool paused;
     uchar key_reg;
     uint speed;
 } CPU;
 
-void PushStack(CPU *self, uchar val) {
-    Node *nptr = malloc(sizeof(Node));
-    nptr->data = val;
-    nptr->next = self->_stack;
-    self->_stack = nptr;
-}
-
-uchar PopStack(CPU *self) {
-    if (self->_stack == NULL) {
-        printf("Stack is empty");
-        exit(1);
-    }
-    uchar val = self->_stack->data;
-    Node *temp = self->_stack;
-    self->_stack = self->_stack->next;
-    free(temp);
-    return val;
-}
-
 void FreeCPU(CPU *self){
-    while (self->_stack != NULL){
-        uchar a = PopStack(self);
-        }
+    free(self->_stack.data);
     free(self);
 }
 
@@ -183,7 +162,7 @@ CPU *InitCPU(Render *render, char *rom_path, uint speed) {
     cpu = calloc(1, sizeof(CPU));
     cpu->render = render;
     cpu->speed = speed;
-    cpu->_stack = NULL;
+    cpu->_stack.data = calloc(2048, sizeof(uchar));
     LoadSpriteIntoMemory(cpu);
     LoadRom(cpu, rom_path);
     cpu->pc = 0x200;
@@ -204,7 +183,8 @@ void ExecuteInstruction(CPU *self, ushort opcode) {
             ClearRender(self->render);
             break;
         case 0x00EE:
-            self->pc = PopStack(self);
+            --self->_stack.stack_ptr;
+            self->pc = self->_stack.data[self->_stack.stack_ptr];
             break;
         }
         break;
@@ -212,7 +192,8 @@ void ExecuteInstruction(CPU *self, ushort opcode) {
         self->pc = opcode & 0xFFF;
         break;
     case 0x2000:
-        PushStack(self, self->pc);
+        self->_stack.data[self->_stack.stack_ptr] = self->pc;
+        ++self->_stack.stack_ptr;
         self->pc = opcode & 0xFFF;
         break;
     case 0x3000:
@@ -252,7 +233,7 @@ void ExecuteInstruction(CPU *self, ushort opcode) {
             self->registers[0xF] = 0;
             if (sum > 0xFF)
                 self->registers[0xF] = 1;
-            self->registers[x] = sum;
+            self->registers[x] = sum & 0xFF;
             break;
         case 0x5:
             self->registers[0xF] = 0;
@@ -271,7 +252,7 @@ void ExecuteInstruction(CPU *self, ushort opcode) {
             self->registers[x] = self->registers[y] - self->registers[x];
             break;
         case 0xE:
-            self->registers[0xF] = self->registers[x] & 0x80;
+            self->registers[0xF] = self->registers[x] >> 7;
             self->registers[x] <<= 1;
             break;
         }
@@ -286,7 +267,7 @@ void ExecuteInstruction(CPU *self, ushort opcode) {
         self->pc = (opcode & 0xFFF) + self->registers[0];
         break;
     case 0xC000:
-        uchar rd = rand()*0xFF;
+        uchar rd = rand() % 100;
         self->registers[x] = rd & opcode & 0xFF;
         break;
     case 0xD000:
