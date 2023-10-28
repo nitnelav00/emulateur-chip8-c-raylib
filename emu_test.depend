@@ -1,0 +1,19 @@
+# depslib dependency file v1.0
+1696082348 source:c:\users\valen\onedrive\documents\programs\c_cpp\raylib\proj1\core_basic_window.c
+	"raylib.h"
+	<stdio.h>
+
+1698489800 source:c:\users\valen\onedrive\documents\programs\c_cpp\raylib\emutest\emu_test.c
+	"raylib.h"
+	<stdio.h>
+	"render.h"
+	"cpu.h"
+
+1698490076 c:\users\valen\onedrive\documents\programs\c_cpp\raylib\emutest\render.h
+	<stdlib.h>
+	<string.h>
+
+1698490098 c:\users\valen\onedrive\documents\programs\c_cpp\raylib\emutest\cpu.h
+	<stdlib.h>
+	"render.h"
+
