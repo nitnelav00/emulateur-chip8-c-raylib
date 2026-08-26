@@ -8,7 +8,7 @@
 #define uchar unsigned char
 #define ushort unsigned short
 
-#define MEMORY_LEN 4096
+#define MEMORY_LEN 0x1000
 
 int translate_keys(uchar in) {
     switch (in) {
@@ -100,6 +100,7 @@ typedef struct {
     uchar sound_timer;
     ushort pc;
     Node *_stack;
+    int stack_size;
     bool paused;
     uchar key_reg;
     uint speed;
@@ -109,17 +110,23 @@ void PushStack(CPU *self, ushort val) {
     Node *nptr = malloc(sizeof(Node));
     nptr->data = val;
     nptr->next = self->_stack;
+    self->stack_size++;
+    printf("push size : %i\n", self->stack_size);
+    fflush(stdout);
     self->_stack = nptr;
 }
 
 ushort PopStack(CPU *self) {
     if (self->_stack == NULL) {
-        printf("Stack is empty");
-        exit(1);
+        printf("Stack est vide \n");
+        return 0x200;
     }
     ushort val = self->_stack->data;
     Node *temp = self->_stack;
     self->_stack = self->_stack->next;
+    self->stack_size--;
+    printf("pop size : %i\n", self->stack_size);
+    fflush(stdout);
     free(temp);
     return val;
 }
@@ -184,10 +191,13 @@ CPU *InitCPU(Render *render, char *rom_path, uint speed) {
     cpu->render = render;
     cpu->speed = speed;
     cpu->_stack = NULL;
+    cpu->stack_size = 0;
     LoadSpriteIntoMemory(cpu);
     LoadRom(cpu, rom_path);
     cpu->pc = 0x200;
-    printf("%04X", cpu->pc);
+    cpu->i = 0;
+    cpu->delay_timer = 0;
+    cpu->sound_timer = 0;
     return cpu;
 }
 
@@ -199,14 +209,13 @@ void ExecuteInstruction(CPU *self, ushort opcode) {
     // printf("%04x ", opcode);
 
     switch (opcode & 0xF000) {
-    case 0x000:
+    case 0x0000:
         switch(opcode) {
         case 0x00E0:
             ClearRender(self->render);
             break;
         case 0x00EE:
             self->pc = PopStack(self);
-            printf("%04x ", self->pc);
             break;
         }
         break;
@@ -241,15 +250,12 @@ void ExecuteInstruction(CPU *self, ushort opcode) {
             self->registers[x] = self->registers[y];
             break;
         case 0x1:
-            self->registers[0xF] = 0;
             self->registers[x] |= self->registers[y];
             break;
         case 0x2:
-            self->registers[0xF] = 0;
             self->registers[x] &= self->registers[y];
             break;
         case 0x3:
-            self->registers[0xF] = 0;
             self->registers[x] ^= self->registers[y];
             break;
         case 0x4:
@@ -280,6 +286,7 @@ void ExecuteInstruction(CPU *self, ushort opcode) {
             self->registers[x] <<= 1;
             break;
         }
+        break;
     case 0x9000:
         if (self->registers[x] != self->registers[y])
             self->pc += 2;
@@ -291,7 +298,7 @@ void ExecuteInstruction(CPU *self, ushort opcode) {
         self->pc = (opcode & 0xFFF) + self->registers[0];
         break;
     case 0xC000:
-        uchar rd = rand() % 100;
+        uchar rd = rand() & 0xFF;
         self->registers[x] = rd & opcode & 0xFF;
         break;
     case 0xD000:
@@ -349,17 +356,21 @@ void ExecuteInstruction(CPU *self, ushort opcode) {
             self->i = self->registers[x] *5;
             break;
         case 0x33:
-            self->memory[self->i] = self->registers[x] / 100;
-            self->memory[self->i + 1] = (self->registers[x] % 100) / 10;
-            self->memory[self->i + 2] = self->registers[x] % 100;
+            if (self->i + 2 < MEMORY_LEN) {
+                self->memory[self->i] = self->registers[x] / 100;
+                self->memory[self->i + 1] = (self->registers[x] % 100) / 10;
+                self->memory[self->i + 2] = self->registers[x] % 10;
+            }
             break;
         case 0x55:
             for (int index = 0; index <= x; index ++)
                 self->memory[self->i + index] = self->registers[index];
+            self->i += 1;
             break;
         case 0x65:
             for (int index = 0; index <= x; index ++)
                 self->registers[index] = self->memory[self->i + index];
+            self->i += 1;
             break;
         }
         break;

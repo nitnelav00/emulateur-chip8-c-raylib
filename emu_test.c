@@ -14,7 +14,7 @@
 int main()
 {
     Render *rend = InitRender();
-    CPU *cpu = InitCPU(rend, "aaaa.bin", 10);
+    CPU *cpu = InitCPU(rend, "program.ch8", 10);
 
     InitWindow(1024, 512, "emu test");
     SetTargetFPS(60);

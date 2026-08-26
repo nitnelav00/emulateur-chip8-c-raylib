@@ -17,3 +17,17 @@
 	<stdlib.h>
 	"render.h"
 
+1787740268 source:/home/nitnelav00/programmation/cprogs/emulateur-chip8-c-raylib/emu_test.c
+	"raylib.h"
+	<stdio.h>
+	"render.h"
+	"cpu.h"
+
+1787739942 /home/nitnelav00/programmation/cprogs/emulateur-chip8-c-raylib/render.h
+	<stdlib.h>
+	<string.h>
+
+1787742144 /home/nitnelav00/programmation/cprogs/emulateur-chip8-c-raylib/cpu.h
+	<stdlib.h>
+	"render.h"
+
